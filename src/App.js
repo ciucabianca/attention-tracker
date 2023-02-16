@@ -1,9 +1,9 @@
 import React, { useRef, useEffect } from "react";
 import "./App.css";
-import { drawMesh } from "./util";
-
-import * as tf from "@tensorflow/tfjs";
+import { drawMesh, displayIrisPosition } from "./util";
+import * as tf from "@tensorflow/tfjs-core";
 import * as facemesh from "@tensorflow-models/face-landmarks-detection";
+import "@tensorflow/tfjs-backend-webgl";
 import Webcam from "react-webcam";
 
 function App() {
@@ -11,12 +11,12 @@ function App() {
   const canvasRef = useRef(null);
 
   const runFaceMesh = async () => {
-    const model = facemesh.SupportedModels.MediaPipeFaceMesh;
-    const detectorConfig = {
-      runtime: "tfjs",
-      solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh",
-    };
-    const detector = await facemesh.createDetector(model, detectorConfig);
+    const model = facemesh.SupportedPackages.mediapipeFacemesh;
+    // const detectorConfig = {
+    //   runtime: "tfjs",
+    //   solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh",
+    // };
+    const detector = await facemesh.load(model);
     setInterval(() => {
       detect(detector);
     }, 10);
@@ -37,18 +37,28 @@ function App() {
       canvasRef.current.width = videoWidth;
       canvasRef.current.height = videoHeight;
 
-      const face = await detector.estimateFaces(video);
+      const predictions = await detector.estimateFaces({
+        input: video,
+        returnTensors: false,
+        flipHorizontal: false,
+        predictIrises: true,
+      });
 
       const ctx = canvasRef.current.getContext("2d");
       requestAnimationFrame(() => {
-        drawMesh(face, ctx);
+        drawMesh(predictions, ctx);
+        // displayIrisPosition(predictions, ctx);
       });
+      console.log("predictions " + JSON.stringify(predictions, null, 4));
+
+      //console.log("direction " + direction);
     }
   };
 
   useEffect(() => {
     runFaceMesh();
-  }, []);
+  });
+
   return (
     <div className="App">
       <div className="App">

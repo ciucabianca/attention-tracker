@@ -185,7 +185,7 @@ const drawPath = (ctx, points, closePath) => {
 export const drawMesh = (predictions, ctx) => {
   if (predictions.length > 0) {
     predictions.forEach((prediction) => {
-      const keyPoints = prediction.keypoints;
+      const keyPoints = prediction.mesh;
 
       for (let i = 0; i < TRIANGULATION.length / 3; i++) {
         const points = [
@@ -205,6 +205,24 @@ export const drawMesh = (predictions, ctx) => {
         ctx.arc(x, y, 1, 0, 3 * Math.PI);
         ctx.fillStyle = "aqua";
         ctx.fill();
+      }
+    });
+  }
+};
+export const displayIrisPosition = (predictions, ctx) => {
+  ctx.strokeStyle = "red";
+  if (predictions.length > 0) {
+    predictions.forEach((prediction) => {
+      const keypoints = prediction.scaledMesh;
+      if (keypoints.length == 478) {
+        for (let i = 468; i < 478; i++) {
+          let x = keypoints[i][0];
+          let y = keypoints[i][1];
+
+          ctx.beginPath();
+          ctx.rect(x, y, 2, 2);
+          ctx.stroke();
+        }
       }
     });
   }
