@@ -209,12 +209,13 @@ export const drawMesh = (predictions, ctx) => {
     });
   }
 };
+
 export const displayIrisPosition = (predictions, ctx) => {
   ctx.strokeStyle = "red";
   if (predictions.length > 0) {
     predictions.forEach((prediction) => {
       const keypoints = prediction.scaledMesh;
-      if (keypoints.length == 478) {
+      if (keypoints.length === 478) {
         for (let i = 468; i < 478; i++) {
           let x = keypoints[i][0];
           let y = keypoints[i][1];
@@ -226,4 +227,33 @@ export const displayIrisPosition = (predictions, ctx) => {
       }
     });
   }
+};
+
+export const normalize = (val, max, min) =>
+  Math.max(0, Math.min(1, (val - min) / (max - min)));
+
+export const isFaceRotated = (landmarks, webcamRef) => {
+  const leftCheek = landmarks.leftCheek;
+  const rightCheek = landmarks.rightCheek;
+  const midwayBetweenEyes = landmarks.midwayBetweenEyes;
+
+  const xPositionLeftCheek = webcamRef.current.video.width - leftCheek[0][0];
+  const xPositionRightCheek = webcamRef.current.video.width - rightCheek[0][0];
+  const xPositionMidwayBetweenEyes =
+    webcamRef.current.video.width - midwayBetweenEyes[0][0];
+
+  const widthLeftSideFace = xPositionMidwayBetweenEyes - xPositionLeftCheek;
+  const widthRightSideFace = xPositionRightCheek - xPositionMidwayBetweenEyes;
+
+  const difference = widthRightSideFace - widthLeftSideFace;
+
+  if (widthLeftSideFace < widthRightSideFace && Math.abs(difference) > 5) {
+    return true;
+  } else if (
+    widthLeftSideFace > widthRightSideFace &&
+    Math.abs(difference) > 5
+  ) {
+    return true;
+  }
+  return false;
 };
