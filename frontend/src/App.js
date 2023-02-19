@@ -100,14 +100,14 @@ function App() {
           } else if (normalizedXIrisPosition < 0.28) {
             event = "LEFT";
           }
-          if (normalizedYIrisPosition > 0.7) {
-            event = "TOP";
-          } else if (
+          if (
             normalizedYIrisPosition < 0.6 &&
-            normalizedXIrisPosition < 0.4 &&
-            normalizedXIrisPosition > 0.3
+            normalizedXIrisPosition < 0.34 &&
+            normalizedXIrisPosition > 0.28
           ) {
             event = "STRAIGHT";
+          } else if (normalizedYIrisPosition > 0.7) {
+            event = "TOP";
           }
         }
       });
