@@ -1,8 +1,9 @@
 import Button from "@material-ui/core/Button";
 import IconButton from "@material-ui/core/IconButton";
 import TextField from "@material-ui/core/TextField";
-//import AssignmentIcon from "@material-ui/icons/Assignment";
+import AssignmentIcon from "@material-ui/icons/Assignment";
 import PhoneIcon from "@material-ui/icons/Phone";
+import { CopyToClipboard } from "react-copy-to-clipboard";
 
 import Peer from "simple-peer";
 import io from "socket.io-client";
@@ -30,10 +31,10 @@ function App() {
   const [callEnded, setCallEnded] = useState(false);
   const [name, setName] = useState("");
 
-  const webcamRef = useRef({});
+  const myWebcamRef = useRef({});
   //const canvasRef = useRef(null);
 
-  const userVideo = useRef();
+  const userVideoRef = useRef();
   const connectionRef = useRef();
 
   let positionXLeftIris;
@@ -45,8 +46,7 @@ function App() {
       .getUserMedia({ video: true, audio: true })
       .then((stream) => {
         setStream(stream);
-        webcamRef.current.srcObject = stream;
-        runFaceMesh();
+        myWebcamRef.current.srcObject = stream;
       });
 
     socket.on("me", (id) => {
@@ -78,7 +78,7 @@ function App() {
     });
 
     peer.on("stream", (stream) => {
-      userVideo.current.srcObject = stream;
+      userVideoRef.current.srcObject = stream;
     });
 
     socket.on("callAccepted", (signal) => {
@@ -101,12 +101,9 @@ function App() {
       socket.emit("answerCall", { signal: data, to: caller });
     });
 
-    peer.on("stream", (stream) => {
-      userVideo.current.srcObject = stream;
-    });
-
     peer.signal(callerSignal);
     connectionRef.current = peer;
+    runFaceMesh();
   };
 
   const leaveCall = () => {
@@ -122,11 +119,11 @@ function App() {
     // };
     const detector = await facemesh.load(model);
     setInterval(() => {
-      detect(detector);
+      detect(detector, userVideoRef);
     }, 10);
   };
 
-  const detect = async (detector) => {
+  const detect = async (detector, webcamRef) => {
     if (
       typeof webcamRef.current !== "undefined" &&
       webcamRef.current !== null &&
@@ -211,7 +208,7 @@ function App() {
 
   return (
     <>
-      <h1 style={{ textAlign: "center", color: "#fff" }}>Not Zoom</h1>
+      <h1 style={{ textAlign: "center", color: "#fff" }}>!Zoom</h1>
       <div className="container">
         <div className="video-container">
           <div className="video">
@@ -219,7 +216,7 @@ function App() {
               <Webcam
                 playsInline
                 muted
-                ref={webcamRef}
+                ref={myWebcamRef}
                 autoPlay
                 style={{ width: "400px" }}
               />
@@ -229,7 +226,7 @@ function App() {
             {callAccepted && !callEnded ? (
               <Webcam
                 playsInline
-                ref={userVideo}
+                ref={userVideoRef}
                 autoPlay
                 style={{ width: "400px" }}
               />
@@ -245,7 +242,14 @@ function App() {
             onChange={(e) => setName(e.target.value)}
             style={{ marginBottom: "20px" }}
           />
-
+          <CopyToClipboard text={me} style={{ marginBottom: "1rem" }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AssignmentIcon fontSize="large" />}>
+              Copy Id
+            </Button>
+          </CopyToClipboard>
           <TextField
             id="filled-basic"
             label="ID to call"
@@ -266,7 +270,6 @@ function App() {
                 <PhoneIcon fontSize="large" />
               </IconButton>
             )}
-            {idToCall}
           </div>
         </div>
         <div>
