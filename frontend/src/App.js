@@ -191,19 +191,17 @@ function App() {
             faceBottomLeftY
           );
 
-          if (normalizedXIrisPosition > 0.34) {
+          if (normalizedXIrisPosition > 0.35) {
             event = "RIGHT";
-          } else if (normalizedXIrisPosition < 0.28) {
+            return;
+          } else if (normalizedXIrisPosition < 0.29) {
             event = "LEFT";
-          }
-          if (
-            normalizedYIrisPosition < 0.6 &&
-            normalizedXIrisPosition < 0.34 &&
-            normalizedXIrisPosition > 0.28
-          ) {
-            event = "STRAIGHT";
+            return;
           } else if (normalizedYIrisPosition > 0.7) {
             event = "TOP";
+            return;
+          } else {
+            event = "STRAIGHT";
           }
         }
       });
