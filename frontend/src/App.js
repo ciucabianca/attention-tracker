@@ -30,8 +30,8 @@ function App() {
   const [callEnded, setCallEnded] = useState(false);
   const [name, setName] = useState("");
 
-  const webcamRef = useRef(null);
-  const canvasRef = useRef(null);
+  const webcamRef = useRef({});
+  //const canvasRef = useRef(null);
 
   const userVideo = useRef();
   const connectionRef = useRef();
@@ -40,63 +40,14 @@ function App() {
   let positionYLeftIris;
   let event;
 
-  const runFaceMesh = async () => {
-    const model = facemesh.SupportedPackages.mediapipeFacemesh;
-    // const detectorConfig = {
-    //   runtime: "tfjs",
-    //   solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh",
-    // };
-    const detector = await facemesh.load(model);
-    setInterval(() => {
-      detect(detector);
-    }, 10);
-  };
-
-  const detect = async (detector) => {
-    if (
-      typeof webcamRef.current !== "undefined" &&
-      webcamRef.current !== null &&
-      webcamRef.current.video.readyState === 4
-    ) {
-      const video = webcamRef.current.video;
-      const videoWidth = webcamRef.current.video.videoWidth;
-      const videoHeight = webcamRef.current.video.videoHeight;
-
-      webcamRef.current.video.width = videoWidth;
-      webcamRef.current.video.height = videoHeight;
-
-      canvasRef.current.width = videoWidth;
-      canvasRef.current.height = videoHeight;
-
-      const predictions = await detector.estimateFaces({
-        input: video,
-        returnTensors: false,
-        flipHorizontal: false,
-        predictIrises: true,
-      });
-
-      // const ctx = canvasRef.current.getContext("2d");
-      // requestAnimationFrame(() => {
-      //   // drawMesh(predictions, ctx);
-      //   //displayIrisPosition(predictions, ctx);
-      // });
-      //  console.log("predictions " + JSON.stringify(predictions, null, 4));
-      const event = await renderPrediction(predictions, webcamRef);
-      console.log("direction " + event);
-    }
-  };
-
   useEffect(() => {
-    const getUserMedia = async () => {
-      const stream = navigator.mediaDevices
-        .getUserMedia({ video: true, audio: true })
-        .then((stream) => {
-          setStream(stream);
-          webcamRef.current.srcObject = stream;
-          runFaceMesh();
-        });
-    };
-    getUserMedia();
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        setStream(stream);
+        webcamRef.current.srcObject = stream;
+        runFaceMesh();
+      });
 
     socket.on("me", (id) => {
       setMe(id);
@@ -109,6 +60,7 @@ function App() {
       setCallerSignal(data.signal);
     });
   }, []);
+
   const callUser = (id) => {
     const peer = new Peer({
       initiator: true,
@@ -135,6 +87,77 @@ function App() {
     });
 
     connectionRef.current = peer;
+  };
+
+  const answerCall = () => {
+    setCallAccepted(true);
+    const peer = new Peer({
+      initiator: false,
+      trickle: false,
+      stream: stream,
+    });
+
+    peer.on("signal", (data) => {
+      socket.emit("answerCall", { signal: data, to: caller });
+    });
+
+    peer.on("stream", (stream) => {
+      userVideo.current.srcObject = stream;
+    });
+
+    peer.signal(callerSignal);
+    connectionRef.current = peer;
+  };
+
+  const leaveCall = () => {
+    setCallEnded(true);
+    connectionRef.current.destroy();
+  };
+
+  const runFaceMesh = async () => {
+    const model = facemesh.SupportedPackages.mediapipeFacemesh;
+    // const detectorConfig = {
+    //   runtime: "tfjs",
+    //   solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh",
+    // };
+    const detector = await facemesh.load(model);
+    setInterval(() => {
+      detect(detector);
+    }, 10);
+  };
+
+  const detect = async (detector) => {
+    if (
+      typeof webcamRef.current !== "undefined" &&
+      webcamRef.current !== null &&
+      webcamRef.current.video.readyState === 4
+    ) {
+      const video = webcamRef.current.video;
+      const videoWidth = webcamRef.current.video.videoWidth;
+      const videoHeight = webcamRef.current.video.videoHeight;
+
+      webcamRef.current.video.width = videoWidth;
+      webcamRef.current.video.height = videoHeight;
+
+      // canvasRef.current.width = videoWidth;
+      // canvasRef.current.height = videoHeight;
+
+      const predictions = await detector.estimateFaces({
+        input: video,
+        returnTensors: false,
+        flipHorizontal: false,
+        predictIrises: true,
+      });
+
+      // const ctx = canvasRef.current.getContext("2d");
+      // requestAnimationFrame(() => {
+      //   // drawMesh(predictions, ctx);
+      //   //displayIrisPosition(predictions, ctx);
+      // });
+      //  console.log("predictions " + JSON.stringify(predictions, null, 4));
+      const event = await renderPrediction(predictions, webcamRef);
+      console.log("direction " + event);
+    }
   };
 
   async function renderPrediction(predictions, webcamRef) {
@@ -188,30 +211,6 @@ function App() {
     return event;
   }
 
-  const answerCall = () => {
-    setCallAccepted(true);
-    const peer = new Peer({
-      initiator: false,
-      trickle: false,
-      stream: stream,
-    });
-
-    peer.on("signal", (data) => {
-      socket.emit("answerCall", { signal: data, to: caller });
-    });
-
-    peer.on("stream", (stream) => {
-      userVideo.current.srcObject = stream;
-    });
-
-    peer.signal(callerSignal);
-    connectionRef.current = peer;
-  };
-
-  const leaveCall = () => {
-    setCallEnded(true);
-    connectionRef.current.destroy();
-  };
   return (
     <>
       <h1 style={{ textAlign: "center", color: "#fff" }}>Not Zoom</h1>
@@ -219,7 +218,7 @@ function App() {
         <div className="video-container">
           <div className="video">
             {stream && (
-              <video
+              <Webcam
                 playsInline
                 muted
                 ref={webcamRef}
@@ -230,7 +229,7 @@ function App() {
           </div>
           <div className="video">
             {callAccepted && !callEnded ? (
-              <video
+              <Webcam
                 playsInline
                 ref={userVideo}
                 autoPlay
