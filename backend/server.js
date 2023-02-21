@@ -12,7 +12,11 @@ const io = require("socket.io")(server, {
 io.on("connection", (socket) => {
   socket.emit("me", socket.id);
 
-  socket.on("disconnect", () => {
+  // socket.on("disconnect", () => {
+  //    socket.broadcast.emit("callEnded");
+  // });
+
+  socket.on("callEnded", () => {
     socket.broadcast.emit("callEnded");
   });
 
@@ -20,12 +24,19 @@ io.on("connection", (socket) => {
     io.to(data.userToCall).emit("callUser", {
       signal: data.signalData,
       from: data.from,
-      name: data.name,
+      callerName: data.callerName,
     });
   });
 
   socket.on("answerCall", (data) => {
     io.to(data.to).emit("callAccepted", data.signal);
+  });
+
+  socket.on("eyeTracking", (data) => {
+    socket.to(data.to).emit("eyeTracking", {
+      guestName: data.guestName,
+      direction: data.direction,
+    });
   });
 });
 

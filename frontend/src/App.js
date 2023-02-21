@@ -30,11 +30,13 @@ function App() {
   const [idToCall, setIdToCall] = useState("");
   const [callEnded, setCallEnded] = useState(false);
   const [name, setName] = useState("");
+  const [callerName, setCallerName] = useState("");
+  const [guestName, setGuestName] = useState("");
 
   const myWebcamRef = useRef({});
   //const canvasRef = useRef(null);
 
-  const userVideoRef = useRef();
+  const userVideoRef = useRef({});
   const connectionRef = useRef();
 
   let positionXLeftIris;
@@ -56,8 +58,19 @@ function App() {
     socket.on("callUser", (data) => {
       setReceivingCall(true);
       setCaller(data.from);
-      setName(data.name);
+      setCallerName(data.callerName);
       setCallerSignal(data.signal);
+    });
+
+    socket.on("eyeTracking", (data) => {
+      console.log("sender ", data.guestName);
+      console.log("direction ", data.direction);
+    });
+
+    socket.on("callEnded", (data) => {
+      console.log("here");
+      setCallEnded(true);
+      // connectionRef.current.destroy();
     });
   }, []);
 
@@ -73,7 +86,7 @@ function App() {
         userToCall: id,
         signalData: data,
         from: me,
-        name: name,
+        callerName: name,
       });
     });
 
@@ -91,6 +104,7 @@ function App() {
 
   const answerCall = () => {
     setCallAccepted(true);
+    setGuestName(name);
     const peer = new Peer({
       initiator: false,
       trickle: false,
@@ -108,7 +122,21 @@ function App() {
 
   const leaveCall = () => {
     setCallEnded(true);
+    socket.emit("callEnded");
     connectionRef.current.destroy();
+  };
+
+  const sendEyeTrackingInfoToHost = (event) => {
+    // console.log("id to call " + idToCall);
+    console.log("sender " + guestName);
+    console.log("event " + event);
+    console.log("to " + caller);
+    let data = {
+      guestName: guestName,
+      direction: event,
+      to: caller,
+    };
+    socket.emit("eyeTracking", data);
   };
 
   const runFaceMesh = async () => {
@@ -154,6 +182,7 @@ function App() {
       //  console.log("predictions " + JSON.stringify(predictions, null, 4));
       const event = await renderPrediction(predictions, webcamRef);
       console.log("direction " + event);
+      sendEyeTrackingInfoToHost(event);
     }
   };
 
@@ -275,7 +304,7 @@ function App() {
         <div>
           {receivingCall && !callAccepted ? (
             <div className="caller">
-              <h1>{name} is calling...</h1>
+              <h1>{callerName} is calling...</h1>
               <Button variant="contained" color="primary" onClick={answerCall}>
                 Answer
               </Button>
